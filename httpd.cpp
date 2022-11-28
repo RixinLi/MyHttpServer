@@ -190,7 +190,6 @@ DWORD WINAPI accept_request(LPVOID arg) {
 	// 文件权限
 	struct stat st;
 	if (stat(path, &st) == -1) { // 没权限请求失败
-		printf("errno is: %d\n", errno);
 		while (get_line(sock, buff, sizeof(buff))>0 && strcmp(buff, "\n"));
 		Notfound(sock);
 	}
