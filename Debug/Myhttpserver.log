@@ -1,2 +1,6 @@
 ﻿  httpd.cpp
+C:\Users\26412\Desktop\服务器项目\Myhttpserver\Myhttpserver\httpd.cpp(159,6): warning C4996: 'stricmp': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _stricmp. See online help for details.
+C:\Users\26412\Desktop\服务器项目\Myhttpserver\Myhttpserver\httpd.cpp(184,2): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\26412\Desktop\服务器项目\Myhttpserver\Myhttpserver\httpd.cpp(186,3): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\26412\Desktop\服务器项目\Myhttpserver\Myhttpserver\httpd.cpp(199,4): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   Myhttpserver.vcxproj -> C:\Users\26412\Desktop\服务器项目\Myhttpserver\Debug\Myhttpserver.exe

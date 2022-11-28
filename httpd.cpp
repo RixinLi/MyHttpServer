@@ -1,8 +1,12 @@
 #include <stdio.h>
 #include <WinSock2.h> // 网络通信需要包含的头文件
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <errno.h>
 #pragma comment(lib,"WS2_32.lib") // 需要加载的Windows库文件
 
-#define PRINT(str) printf("[%s - %d]"#str"=%s", __func__, __LINE__, str)
+#define PRINT(str) printf("[%s - %d]"#str"=%s\n", __func__, __LINE__, str)
 
 // 报错
 void error_die(const char* str) {
@@ -92,7 +96,9 @@ int get_line(int sock, char* buff, int size) {
 
 	// \r\n
 	while ( i<size-1 && c != '\n') {
+
 		int n = recv(sock, &c, 1, 0);
+		
 		if (n > 0) {
 			if (c == '\r') {
 				n = recv(sock, &c, 1, MSG_PEEK); // MSG_PEEK 瞄一眼
@@ -114,6 +120,20 @@ int get_line(int sock, char* buff, int size) {
 	return i;
 }
 
+void unimplement(int client) {
+	// 向指定的套接字，发送服务不实现
+
+}
+
+void Notfound(int client) {
+	// 向指定的套接字，发送不存在
+}
+
+void server_file(int client, const char* filename) {
+	// 准备向指定的套接字，发送文件
+
+}
+
 
 // 处理用户请求的线程函数
 DWORD WINAPI accept_request(LPVOID arg) {
@@ -124,16 +144,71 @@ DWORD WINAPI accept_request(LPVOID arg) {
 	//	读取一行数据
 	int numchars = get_line(sock, buff, sizeof(buff));
 	PRINT(buff);
-	
+
+	char method[255];
+	int j = 0, i=0;
+
+	// 获取方法
+	while (!isspace(buff[j]) && i < sizeof(method)-1 && j < sizeof(buff)) {
+		method[i++] = buff[j++];
+	}
+	method[i] = 0;
+	PRINT(method);
+
+	// 检查请求的方法，本服务是否支持
+	if (stricmp(method, "GET") && stricmp(method, "POST")) {
+		// 向浏览器返回一个错误提升页面
+		// To do 
+		unimplement(sock);
+		return 0;
+	}
 
 
+	// 解析资源的路径
+	// www.baidu.com/abc/test.html
+	char url[255]; // 存放资源请求完整路径
+	i = 0;
+	while (isspace(buff[j]) && j < sizeof(buff)) j++;
+	while (!isspace(buff[j]) && i < sizeof(url) - 1 && j < sizeof(buff)) {
+		url[i++] = buff[j++];
+	}
+	url[i] = 0;
+	PRINT(url);
+
+	// www.rock.com
+	// 127.0.0.1/test.html
+	// url  /test.html
+	// htdocs/test.html
+
+	char path[512] = "";
+	sprintf(path, "htdocs%s",url);
+	if (path[strlen(path) - 1] == '/') {
+		strcat(path, "index.html");
+	}
+	PRINT(path);
+
+	// 文件权限
+	struct stat st;
+	if (stat(path, &st) == -1) { // 没权限请求失败
+		printf("errno is: %d\n", errno);
+		while (get_line(sock, buff, sizeof(buff))>0 && strcmp(buff, "\n"));
+		Notfound(sock);
+	}
+	else {
+		if ((st.st_mode & S_IFMT) == S_IFDIR) { // 如果是文件夹再加一个index.html
+			strcat(path, "/index.html");
+		}
+		server_file(sock,path);
+	}
+
+	closesocket(sock);
 	return 0;
 }
 
 
 int main(void) {
 
-	unsigned short port = 8080;
+	unsigned short port = 80;
 	int server_socket = startup(&port);
 	printf("Myhttpserver is listening %d port.\n", port);
 
