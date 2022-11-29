@@ -14,6 +14,24 @@ void error_die(const char* str) {
 	exit(1);
 }
 
+// 根据路径后缀名打开文件 0用rb, 1 用r 
+int file_type(const char* path, int len) {
+	int i = len - 1;
+	char type[255];
+	int j = 0;
+
+	for (; i >= 0 && path[i]!='.' && path[i]!='/'; i--) {
+		type[j++] = path[i];
+	}
+	type[j] = 0;
+
+	if (path[i] == '/') return 1;
+
+	// 图片类型总和
+	if (!strcmp(type, "gpj") || !strcmp(type, "gnp")) return 0;
+
+	return 1;
+}
 
 // 实现网络的初始化
 // return 套接字（服务器端的套接字）
@@ -127,10 +145,101 @@ void unimplement(int client) {
 
 void Notfound(int client) {
 	// 向指定的套接字，发送不存在
+	
+
+}
+
+void headers(int client, int method, int type) {
+	// 发送响应包的头信息
+
+	char buff[1024];
+
+	switch (method)
+	{
+	case 1:
+		strcpy(buff, "HTTP/1.0 200 OK\r\n");
+		break;
+	default:
+		buff[0] = 0;
+		break;
+	}
+	send(client, buff, strlen(buff), 0);
+
+	strcpy(buff, "Server: RixinHttpd/0.1\r\n");
+	send(client, buff, strlen(buff), 0);
+
+	switch (type)
+	{
+	case 1:
+		strcpy(buff, "Content-type:text/html\n");
+		break;
+	case 2:
+		strcpy(buff, "Content-type:image/jpg\n");
+		break;
+	default:
+		break;
+	}
+	send(client, buff, strlen(buff), 0);
+
+	// 结束
+	send(client, "\r\n", 2, 0);
+
+}
+
+// 文件的实际内容
+void cat(int client, FILE* resource) {
+	// To do
+
+	char buff[4096];
+
+	int count = 0;
+
+	while (1) {
+
+		int ret = fread(buff, sizeof(char), sizeof(buff), resource);
+		if (ret <= 0) {
+			break;
+		}
+		send(client, buff, ret, 0);
+		count += ret;
+	}
+
+	printf("total =%d\n", count);
+
 }
 
 void server_file(int client, const char* filename) {
 	// 准备向指定的套接字，发送文件
+	char buff[1024];
+	// 把请求数据包剩余数据行，读完
+	while (get_line(client, buff, sizeof(buff)) > 0 && strcmp(buff, "\n"))PRINT(buff);
+
+	FILE* resource = NULL;
+	// 正式发送资源给浏览器
+
+	int type;
+
+	if (file_type(filename, strlen(filename))) {
+		resource = fopen(filename, "r");
+		type = 1;
+	}
+	else {
+		resource = fopen(filename, "rb");
+		type = 2;
+	}
+
+	if (resource == NULL) {
+		Notfound(client);
+	}
+
+
+	headers(client,1,type);
+
+	// 发送请求的资源信息
+	cat(client,resource);
+
+	printf("messages sent success!\n");
+	fclose(resource);
 
 }
 
