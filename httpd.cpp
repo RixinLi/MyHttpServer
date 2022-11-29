@@ -15,22 +15,16 @@ void error_die(const char* str) {
 }
 
 // 根据路径后缀名打开文件 0用rb, 1 用r 
-int file_type(const char* path, int len) {
-	int i = len - 1;
-	char type[255];
-	int j = 0;
-
-	for (; i >= 0 && path[i]!='.' && path[i]!='/'; i--) {
-		type[j++] = path[i];
-	}
-	type[j] = 0;
-
-	if (path[i] == '/') return 1;
-
+int file_type(const char* path) {
+	const char* type = strrchr(path, '.');
+	if (!type) return 0;
+	type++;
 	// 图片类型总和
-	if (!strcmp(type, "gpj") || !strcmp(type, "gnp")) return 0;
-
-	return 1;
+	if (!strcmp(type, "jpg")) return 1;
+	else if (!strcmp(type, "png")) return 2;
+	else if (!strcmp(type, "css")) return 3;
+	else if (!strcmp(type, "js")) return 4;
+	return 0;
 }
 
 // 实现网络的初始化
@@ -138,17 +132,6 @@ int get_line(int sock, char* buff, int size) {
 	return i;
 }
 
-void unimplement(int client) {
-	// 向指定的套接字，发送服务不实现
-
-}
-
-void Notfound(int client) {
-	// 向指定的套接字，发送不存在
-	
-
-}
-
 void headers(int client, int method, int type) {
 	// 发送响应包的头信息
 
@@ -158,6 +141,9 @@ void headers(int client, int method, int type) {
 	{
 	case 1:
 		strcpy(buff, "HTTP/1.0 200 OK\r\n");
+		break;
+	case 404:
+		strcpy(buff, "HTTP/1.0 404 NOT FOUND\r\n");
 		break;
 	default:
 		buff[0] = 0;
@@ -170,13 +156,23 @@ void headers(int client, int method, int type) {
 
 	switch (type)
 	{
+	case 0:
+		strcpy(buff, "Content-type: text/html\r\n");
+		break;
 	case 1:
-		strcpy(buff, "Content-type:text/html\n");
+		strcpy(buff, "Content-type: image/jpeg\r\n");
 		break;
 	case 2:
-		strcpy(buff, "Content-type:image/jpg\n");
+		strcpy(buff, "Content-type: image/png\r\n");
+		break;
+	case 3:
+		strcpy(buff, "Content-type: text/css\r\n");
+		break;
+	case 4:
+		strcpy(buff, "Content-type: application/x-javascript\r\n");
 		break;
 	default:
+		buff[0] = 0;
 		break;
 	}
 	send(client, buff, strlen(buff), 0);
@@ -185,6 +181,7 @@ void headers(int client, int method, int type) {
 	send(client, "\r\n", 2, 0);
 
 }
+
 
 // 文件的实际内容
 void cat(int client, FILE* resource) {
@@ -208,6 +205,24 @@ void cat(int client, FILE* resource) {
 
 }
 
+
+void unimplement(int client) {
+	// 向指定的套接字，发送服务不实现
+
+}
+
+void Notfound(int client) {
+	// 向指定的套接字，发送不存在
+	headers(client, 404, -1);
+	// 发送404网页内容
+	FILE* resource = fopen("htdocs/404.html", "r");
+	if (resource == NULL) {
+		PRINT("Cannot open 404\n");
+	}
+	cat(client, resource);
+}
+
+
 void server_file(int client, const char* filename) {
 	// 准备向指定的套接字，发送文件
 	char buff[1024];
@@ -217,15 +232,13 @@ void server_file(int client, const char* filename) {
 	FILE* resource = NULL;
 	// 正式发送资源给浏览器
 
-	int type;
+	int type = file_type(filename);
 
-	if (file_type(filename, strlen(filename))) {
+	if (type != 1 && type != 2) {
 		resource = fopen(filename, "r");
-		type = 1;
 	}
 	else {
 		resource = fopen(filename, "rb");
-		type = 2;
 	}
 
 	if (resource == NULL) {
